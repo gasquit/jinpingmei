@@ -1,0 +1,75 @@
+def cumu_overshoot_time(tasks):
+    """
+    keep the ddl for the most overshoot time, max_d, could be neg
+    initially, max_d = 1, max_ovs = -1
+    if new task read in (M, D) has a D <= max_d, 
+    then overshoot time for D and max_d shoud inc by same amount, M, so the new
+    max_d is the same position, new max_ovs + by M. print max(0, new max_ovs)
+    else, need to compare all inserted position for new max_d and get new max_ovs
+     
+    """
+
+    overshoot = [-i-1 for i in xrange(100000)]  # index is D - 1
+    ddls = []  # hold distinct D's inserted so far
+    max_d, unaccounted_ovs = 1, 0
+    max_ov = -1
+    results = []
+    for d, m in tasks:
+        #print "(%s, %s)"%(d, m)
+        if d <= max_d:
+            # won't need to change rmaxtree
+            unaccounted_ovs += m
+            max_ov += m
+            results.append( (max_ov, max(0, max_ov)) )
+            #print max_ov, " ", max(0, max_ov)
+            #print "ddls now:%s"%str(ddls), "unacc:%s"%unaccounted_ovs
+            continue
+
+        if overshoot[d-1] > -d:
+            # already tasks at deadline d, no insert needed
+            
+            curr_max_ov, curr_max_d = -1000000, max_d
+            for d2 in reversed(ddls):
+                if d2 < d:
+                    break
+                overshoot[d2-1] += m
+                ovs = overshoot[d2-1]
+                if ovs > curr_max_ov:
+                    # strictly >, so that new max_d position is maximized to imprv performance
+                    curr_max_ov, curr_max_d = ovs, d2
+            if curr_max_ov + unaccounted_ovs >= max_ov:
+                max_ov, max_d = curr_max_ov + unaccounted_ovs, curr_max_d
+        else:
+            # need to insert d into ddls[]
+            ddls.append( d )
+            
+            curr_max_ov, curr_max_d = -1000000, max_d
+            if len(ddls) == 1:
+                overshoot[d-1] += m
+                curr_max_ov = overshoot[d-1]
+            #cumsum, insert_j = m, -1
+            for j in xrange(len(ddls)-2, -1, -1):  # because len(ddls)-1 is d at the start
+                dj = ddls[j]
+                dm = max( dj, d )
+                if dj < d:
+                    overshoot[ d-1 ] += overshoot[dj-1] + dj
+                    
+                #print "add overshoot"
+                overshoot[ dm-1 ] += m
+                ovs = overshoot[ dm-1 ]
+                if ovs > curr_max_ov:
+                    # strictly >, so that new max_d position is maximized to imprv performance
+                    curr_max_ov, curr_max_d = ovs, dm
+                ddls[j+1] = dm
+                if dj < d:
+                    break
+            #ddls[insert_j+1] = d
+            #overshoot[d-1] += cumsum
+            #print "ddls now: %s"%str(ddls), "ovs:%s"%str([(i+1, x) for i, x in enumerate(overshoot) if x > -(i+1)])
+            
+            if curr_max_ov + unaccounted_ovs >= max_ov:
+                max_ov, max_d = curr_max_ov + unaccounted_ovs, curr_max_d
+
+        #print max_ov, " ", max(0, max_ov)
+        results.append( (max_ov, max(0, max_ov)) )
+    return ddls, unaccounted_ovs, results
