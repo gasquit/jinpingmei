@@ -40,3 +40,6 @@ class H(object):
         return '<H>: rowspan=%s'%self.rowspan
 
 map( lambda r: map( lambda x: H(x) if x > 0 else None, r), param.values )
+
+
+df.join( df['a'].sum(level='cust',).rename('abc'), ).sort_values(['abc', 'a'])
